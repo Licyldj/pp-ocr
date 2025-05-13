@@ -1,0 +1,47 @@
+# Version: 2.3.0
+FROM registry.baidubce.com/paddlepaddle/paddle:2.5.1-gpu-cuda11.7-cudnn8.4-trt8.4
+
+# PaddleOCR base on Python3.7
+RUN pip3.7 install --upgrade pip
+
+RUN pip3.7 install paddlehub --upgrade -i https://mirror.baidu.com/pypi/simple
+
+RUN git clone -b release/2.7 https://github.com/PaddlePaddle/PaddleOCR.git /PaddleOCR
+
+WORKDIR /PaddleOCR
+
+COPY ocr_worker/ch/requirements.txt /PaddleOCR/
+COPY ocr_worker/ch/module.py /PaddleOCR/deploy/hubserving/ocr_system/
+COPY ocr_worker/ch/config.json /PaddleOCR/deploy/hubserving/ocr_system/
+
+
+RUN pip3.7 install -r requirements.txt
+
+RUN mkdir -p /PaddleOCR/inference/
+ENV det_model_link=https://paddleocr.bj.bcebos.com/PP-OCRv3/chinese/ch_PP-OCRv3_det_infer.tar
+ENV det_model_file=ch_PP-OCRv3_det_infer
+
+ENV classify_model_link=https://paddleocr.bj.bcebos.com/dygraph_v2.0/ch/ch_ppocr_mobile_v2.0_cls_infer.tar
+ENV classify_model_file=ch_ppocr_mobile_v2.0_cls_infer
+
+ENV rec_model_link=https://paddleocr.bj.bcebos.com/PP-OCRv3/chinese/ch_PP-OCRv3_rec_infer.tar
+ENV rec_model_file=ch_PP-OCRv3_rec_infer
+
+ADD ${det_model_link} /PaddleOCR/inference/
+RUN tar xf /PaddleOCR/inference/${det_model_file}.tar -C /PaddleOCR/inference/
+#  && mv /PaddleOCR/inference/${det_model_file} /PaddleOCR/inference/ch_PP-OCRv3_det_infer
+
+ADD ${classify_model_link} /PaddleOCR/inference/
+RUN tar xf /PaddleOCR/inference/${classify_model_file}.tar -C /PaddleOCR/inference/
+# && mv /PaddleOCR/inference/${classify_model_file} /PaddleOCR/inference/ch_ppocr_mobile_v2.0_cls_infer
+
+
+ADD ${rec_model_link} /PaddleOCR/inference/
+RUN tar xf /PaddleOCR/inference/${rec_model_file}.tar -C /PaddleOCR/inference/
+#  && mv /PaddleOCR/inference/${rec_model_file} /PaddleOCR/inference/ch_PP-OCRv3_rec_infer
+
+
+EXPOSE 8800
+ENV CUDA_VISIBLE_DEVICES=0
+
+CMD ["/bin/bash","-c","hub install deploy/hubserving/ocr_system/ && hub serving start -c deploy/hubserving/ocr_system/config.json -m ocr_system"]

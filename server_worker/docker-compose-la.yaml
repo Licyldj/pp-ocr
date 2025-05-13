@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  la-worker:
+    build:
+      context: .
+      dockerfile: DockerfileGPU_la
+    image: image-ocr-worker-la
+    network_mode: "host"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    restart: always
+  la-server:
+    image: image-ocr-server
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002" ]
+    network_mode: "host"
+    restart: always
+    environment:
+      - "port=8002"
+      - "worker_port=8802"
+      - "app_name=image-ocr-server-la"
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: "4G"
+    volumes:
+      - /tmp/image-ocr-service-la:/app/logs

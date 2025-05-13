@@ -1,0 +1,13 @@
+fastapi
+numpy
+redis
+uvicorn
+pillow
+pydantic-settings
+httpx
+prometheus-client
+loguru
+py_eureka_client
+nacos-sdk-python
+apscheduler
+pykafka
