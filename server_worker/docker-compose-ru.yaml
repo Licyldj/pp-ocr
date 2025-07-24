@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  ru-worker:
+    build:
+      context: .
+      dockerfile: DockerfileGPU_ru
+    image: image-ocr-worker-ru
+    network_mode: "host"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    restart: always
+  ru-server:
+    image: image-ocr-server
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8004" ]
+    network_mode: "host"
+    restart: always
+    environment:
+      - "port=8004"
+      - "worker_port=8804"
+      - "app_name=image-ocr-server-ru"
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: "4G"
+    volumes:
+      - /tmp/image-ocr-service-ru:/app/logs
